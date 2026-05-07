@@ -9,6 +9,8 @@ description = "Shared CLDFbench wiring for Loanwordbank datasets"
 requires-python = ">=3.11"
 dependencies = [
     "cldfbench>=1.14",
+    "pyclts>=3.0",
+    "segments>=2.0",
 ]
 
 [tool.setuptools.packages.find]
