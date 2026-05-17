@@ -303,7 +303,7 @@ class LoanwordbankDataset(CldfbenchDataset):
             return (False, False, False, False)
         s = self.clts.bipa.resolve_sound(t)
         if isinstance(s, Vowel):
-            c = s.centrality
+            c = (getattr(s, "featuredict", None) or {}).get("centrality")
             f = c in self._BIPA_FRONT_CENTRALITY if c else False
             b_ = c in self._BIPA_BACK_CENTRALITY if c else False
             return (True, False, f, b_)
