@@ -8,6 +8,14 @@ from .dataset import (
     LoanwordbankDataset,
     read_cldfbench_makecldf_toml,
 )
+from .glove import load_glove_model
+from .sibling_module import load_sibling_module
+from .wordvector_gloss import (
+    check_wordvector_input_coverage,
+    tokenize,
+    wordvector_input_column_value,
+    wordvector_input_from_gloss,
+)
 
 __all__ = [
     "CLDF_TABLE_CSV_BASENAME",
@@ -15,6 +23,12 @@ __all__ = [
     "CLDFBENCH_MAKECLDF_BASENAME",
     "EXTRA_COLS_AGGREGATE_BASENAME",
     "LoanwordbankDataset",
+    "check_wordvector_input_coverage",
+    "load_glove_model",
+    "load_sibling_module",
     "read_cldfbench_makecldf_toml",
+    "tokenize",
+    "wordvector_input_column_value",
+    "wordvector_input_from_gloss",
 ]
 __version__ = "0.1.0"

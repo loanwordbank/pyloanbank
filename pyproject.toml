@@ -11,6 +11,7 @@ dependencies = [
     "cldfbench>=1.14",
     "pyclts>=3.0",
     "segments>=2.0",
+    "gensim>=4.0",
 ]
 
 [tool.setuptools.packages.find]
