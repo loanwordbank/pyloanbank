@@ -249,6 +249,11 @@ class LoanwordbankDataset(CldfbenchDataset):
     _BIPA_BACK_CENTRALITY: frozenset[str] = frozenset(
         ("back", "near-back")
     )
+    # Tokens forced to back-vowel classification, overriding BIPA centrality.
+    # BIPA classifies the open vowel `a` as `front`, but it is treated as a back
+    # vowel here to match the back/front vowel-harmony conventions used downstream
+    # (e.g. word-final vowel insertion in the loanword-adaptation pipeline).
+    _FORCE_BACK_VOWELS: frozenset[str] = frozenset(("a",))
 
     @staticmethod
     def _cv_profile_cell(row: dict) -> str | None:
@@ -303,6 +308,8 @@ class LoanwordbankDataset(CldfbenchDataset):
             return (False, False, False, False)
         s = self.clts.bipa.resolve_sound(t)
         if isinstance(s, Vowel):
+            if t in self._FORCE_BACK_VOWELS:
+                return (True, False, False, True)
             c = (getattr(s, "featuredict", None) or {}).get("centrality")
             f = c in self._BIPA_FRONT_CENTRALITY if c else False
             b_ = c in self._BIPA_BACK_CENTRALITY if c else False
@@ -377,12 +384,14 @@ class LoanwordbankDataset(CldfbenchDataset):
             (
                 "Front_Vowels",
                 "Vowels among `Vowels` with BIPA centrality `front` or `near-front` (excludes "
-                "diphthongs, which are only in `Vowels`).",
+                "diphthongs, which are only in `Vowels`). The open vowel `a` is excluded here "
+                "and listed under `Back_Vowels` instead, overriding its BIPA `front` centrality.",
             ),
             (
                 "Back_Vowels",
                 "Vowels among `Vowels` with BIPA centrality `back` or `near-back` (excludes "
-                "diphthongs).",
+                "diphthongs). Also includes the open vowel `a`, which is forced to back despite "
+                "its BIPA `front` centrality.",
             ),
         ):
             if name not in present:
