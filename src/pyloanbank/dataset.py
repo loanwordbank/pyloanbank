@@ -17,6 +17,11 @@ from pyclts.models import Consonant, Diphthong, UnknownSound, Vowel
 from pyclts.util import nfd
 from segments import Profile, Tokenizer
 
+from .partial_cognacy import (
+    SEGMENT_SLICE_DC_DESCRIPTION,
+    apply_segment_slices_from_alignments,
+)
+
 CLDFBENCH_MAKECLDF_BASENAME = "cldfbench_makecldf.toml"
 EXTRA_COLS_AGGREGATE_BASENAME = "ExtraCols.toml"
 
@@ -105,6 +110,10 @@ class LoanwordbankDataset(CldfbenchDataset):
     raw_data_csv: ClassVar[str | None] = None
     raw_data_read_csv_kwargs: ClassVar[dict[str, Any]] = {}
     segment_tokenizer_column: ClassVar[str] = "mapping"
+    #: Cognate alignment columns to scan for surplus ``+`` markers (first match
+    #: wins). When set and ``CognateTable`` is built, empty ``Segment_Slice``
+    #: values are filled from the linked form's ``Segments`` phoneme prefix.
+    segment_slice_alignment_columns: ClassVar[tuple[str, ...] | None] = None
     _cldfbench_makecldf_cfg: ClassVar[dict[str, Any] | None] = None
 
     def __init_subclass__(cls, **kwargs):
@@ -503,10 +512,12 @@ class LoanwordbankDataset(CldfbenchDataset):
         self.load_langs()
         self.remove_makecldf_columns(args.writer)
         self.apply_extra_columns_for_makecldf(args.writer)
+        self._ensure_cognatetable_segment_slice_description(args.writer)
         self._ensure_languagetable_inventories_columns(args.writer)
         self._init_raw_data()
         self._init_makecldf_instance_table_lists()
         self._cmd_makecldf_body(args)
+        self._apply_segment_slices_if_configured(args)
         self._fill_makecldf_rows_from_instance_attrs()
         self._populate_languagetable_inventory_columns()
 
@@ -555,6 +566,33 @@ class LoanwordbankDataset(CldfbenchDataset):
 
     def _cmd_makecldf_body(self, args) -> None:
         raise NotImplementedError
+
+    def _ensure_cognatetable_segment_slice_description(self, writer) -> None:
+        if not type(self).segment_slice_alignment_columns:
+            return
+        if "CognateTable" not in writer.cldf:
+            return
+        for col in writer.cldf["CognateTable"].tableSchema.columns:
+            if col.name == "Segment_Slice":
+                col.common_props["dc:description"] = SEGMENT_SLICE_DC_DESCRIPTION
+                break
+
+    def _apply_segment_slices_if_configured(self, args) -> None:
+        cols = type(self).segment_slice_alignment_columns
+        if not cols or "CognateTable" not in self.makecldf_tables:
+            return
+        cognates = getattr(self, "cognates", None)
+        forms = getattr(self, "forms", None)
+        if not cognates or not forms:
+            return
+        forms_by_id = {row["ID"]: row for row in forms}
+        updated = apply_segment_slices_from_alignments(
+            cognates,
+            forms_by_id=forms_by_id,
+            alignment_columns=cols,
+        )
+        if updated:
+            args.log.info("set Segment_Slice on %d cognate row(s)", updated)
 
     def log_sources_bib_written(self) -> str:
         return "wrote cldf/sources.bib"
